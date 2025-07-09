@@ -1,0 +1,13 @@
+# dependencies
+node_modules
+
+# misc
+.env
+.DS_Store
+npm-debug.log*
+
+# test & coverage
+coverage/
+
+# build output
+public/dist/ 

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LocalStack SQS Explorer</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        height: 100vh;
+      }
+      #sidebar {
+        width: 300px;
+        background: #f0f0f0;
+        overflow-y: auto;
+        border-right: 1px solid #ccc;
+      }
+      #content {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+      }
+      .queue {
+        padding: 10px;
+        cursor: pointer;
+        border-bottom: 1px solid #ddd;
+      }
+      .queue:hover {
+        background: #e8e8e8;
+      }
+      pre {
+        background: #eee;
+        padding: 10px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+      }
+      th {
+        background: #fafafa;
+        text-align: left;
+      }
+
+      /* Loader overlay */
+      #loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        display: none;
+      }
+      .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      /* Toast */
+      #toast {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #4caf50;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 4px;
+        display: none;
+        z-index: 1100;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="sidebar">
+      <h2 style="padding: 10px; margin: 0;">Queues</h2>
+      <input
+        id="search"
+        type="text"
+        placeholder="Search..."
+        style="width: 90%; margin: 10px; padding: 6px;"
+      />
+      <div id="queues"></div>
+    </div>
+    <div id="content">
+      <h2 style="display: flex; align-items: center; gap: 10px;">
+        <span>Attributes</span>
+        <button id="editBtn" style="display: none; padding: 4px 8px;">Edit</button>
+        <button id="saveBtn" style="display: none; padding: 4px 8px;">Save</button>
+        <button id="cancelBtn" style="display: none; padding: 4px 8px;">Cancel</button>
+      </h2>
+      <div id="attributesPlaceholder">Select a queue to view its attributes</div>
+      <table id="attributesTable" style="display: none;">
+        <thead>
+          <tr>
+            <th>Attribute</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- Loader & Toast -->
+    <div id="loader"><div class="spinner"></div></div>
+    <div id="toast">Updated successfully</div>
+
+    <script>
+      let allQueues = [];
+      let selectedQueueUrl = null;
+      let editing = false;
+
+      // List of writable attributes (should match backend)
+      const WRITABLE = [
+        'DelaySeconds',
+        'MaximumMessageSize',
+        'MessageRetentionPeriod',
+        'Policy',
+        'ReceiveMessageWaitTimeSeconds',
+        'RedrivePolicy',
+        'VisibilityTimeout',
+        'KmsMasterKeyId',
+        'KmsDataKeyReusePeriodSeconds',
+        'ContentBasedDeduplication',
+        'FifoThroughputLimit',
+        'DeduplicationScope',
+        'RedriveAllowPolicy',
+        'SqsManagedSseEnabled',
+      ];
+
+      function renderQueues(filter = '') {
+        const queueContainer = document.getElementById('queues');
+        queueContainer.innerHTML = '';
+        const lowerFilter = filter.toLowerCase();
+
+        allQueues
+          .filter((url) =>
+            url.toLowerCase().includes(lowerFilter)
+          )
+          .forEach((url) => {
+            const name = url.split('/').pop();
+            const div = document.createElement('div');
+            div.className = 'queue';
+            div.textContent = name;
+            div.title = url; // keep full URL in tooltip
+            div.onclick = () => loadAttributes(url);
+            queueContainer.appendChild(div);
+          });
+      }
+
+      async function loadQueues() {
+        try {
+          const res = await fetch('/api/queues');
+          const data = await res.json();
+          allQueues = data.queues || [];
+          const searchVal = document.getElementById('search').value;
+          renderQueues(searchVal);
+        } catch (e) {
+          console.error('Failed to load queues', e);
+        }
+      }
+
+      // Setup search handler
+      document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.getElementById('search');
+        searchInput.addEventListener('input', (e) => {
+          renderQueues(e.target.value);
+        });
+      });
+
+      async function loadAttributes(url) {
+        const res = await fetch('/api/queue?url=' + encodeURIComponent(url));
+        const data = await res.json();
+        selectedQueueUrl = url;
+        editing = false;
+
+        // Button visibility
+        document.getElementById('editBtn').style.display = 'inline-block';
+        document.getElementById('saveBtn').style.display = 'none';
+        document.getElementById('cancelBtn').style.display = 'none';
+
+        const placeholder = document.getElementById('attributesPlaceholder');
+        const table = document.getElementById('attributesTable');
+        const tbody = table.querySelector('tbody');
+
+        // Clear previous rows
+        tbody.innerHTML = '';
+
+        // Populate new rows
+        Object.entries(data.attributes || {}).forEach(([key, value]) => {
+          const tr = document.createElement('tr');
+          const tdKey = document.createElement('td');
+          tdKey.textContent = key;
+          const tdValue = document.createElement('td');
+          tdValue.textContent = value;
+          if (!WRITABLE.includes(key)) {
+            tdValue.style.background = '#f9f9f9';
+          }
+          tr.appendChild(tdKey);
+          tr.appendChild(tdValue);
+          tbody.appendChild(tr);
+        });
+
+        // Toggle visibility
+        placeholder.style.display = 'none';
+        table.style.display = 'table';
+      }
+
+      // Toggle to edit mode
+      function enterEditMode() {
+        if (!selectedQueueUrl || editing) return;
+        editing = true;
+
+        const table = document.getElementById('attributesTable');
+        const tbody = table.querySelector('tbody');
+
+        Array.from(tbody.rows).forEach((row) => {
+          const key = row.cells[0].textContent;
+          const valueCell = row.cells[1];
+
+          if (!WRITABLE.includes(key)) return; // skip read-only
+
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.value = valueCell.textContent;
+          input.style.width = '100%';
+          valueCell.textContent = '';
+          valueCell.appendChild(input);
+        });
+
+        // Buttons
+        document.getElementById('editBtn').style.display = 'none';
+        document.getElementById('saveBtn').style.display = 'inline-block';
+        document.getElementById('cancelBtn').style.display = 'inline-block';
+      }
+
+      // Cancel editing (reload attributes)
+      function cancelEdit() {
+        if (!editing) return;
+        loadAttributes(selectedQueueUrl);
+      }
+
+      // Save edited attributes
+      async function saveEdit() {
+        if (!editing) return;
+
+        const table = document.getElementById('attributesTable');
+        const tbody = table.querySelector('tbody');
+        const attributes = {};
+        Array.from(tbody.rows).forEach((row) => {
+          const key = row.cells[0].textContent;
+          const input = row.cells[1].querySelector('input');
+          if (input) {
+            attributes[key] = input.value;
+          }
+        });
+
+        // Show loader
+        document.getElementById('loader').style.display = 'flex';
+
+        try {
+          await fetch('/api/queue/attributes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: selectedQueueUrl, attributes }),
+          });
+
+          // Hide loader & toast success
+          document.getElementById('loader').style.display = 'none';
+          showToast('Attributes updated successfully');
+
+          // Reload attributes to view mode
+          loadAttributes(selectedQueueUrl);
+        } catch (e) {
+          console.error('Failed to update attributes', e);
+          document.getElementById('loader').style.display = 'none';
+          alert('Failed to update attributes: ' + e.message);
+        }
+      }
+
+      // Toast helper
+      function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.style.display = 'block';
+        setTimeout(() => {
+          toast.style.display = 'none';
+        }, 3000);
+      }
+
+      // Hook up buttons
+      document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('editBtn').addEventListener('click', enterEditMode);
+        document.getElementById('saveBtn').addEventListener('click', saveEdit);
+        document.getElementById('cancelBtn').addEventListener('click', cancelEdit);
+      });
+
+      loadQueues();
+      // Refresh queue list every 30 seconds in case new queues appear
+      setInterval(loadQueues, 30000);
+    </script>
+  </body>
+</html> 
