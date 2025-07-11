@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SNS Topics</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: #f8fafc;
+      }
+      h1 {
+        margin-top: 0;
+        color: #1e293b;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+      li {
+        background: #ffffff;
+        margin-bottom: 8px;
+        padding: 10px 14px;
+        border-radius: 6px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .topic-name {
+        font-weight: 600;
+        color: #1e293b;
+      }
+      a.home {
+        text-decoration: none;
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #2563eb;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="/" class="home">← Back to Home</a>
+    <h1>SNS Topics</h1>
+    <ul id="topicList"></ul>
+
+    <script>
+      async function loadTopics() {
+        try {
+          const res = await fetch('/api/sns');
+          const data = await res.json();
+          const ul = document.getElementById('topicList');
+          data.topics.forEach((arn) => {
+            const li = document.createElement('li');
+            const name = arn.split(':').pop();
+            li.innerHTML = `<span class="topic-name">${name}</span><span style="font-size:12px;color:#64748b;">${arn}</span>`;
+            ul.appendChild(li);
+          });
+        } catch (err) {
+          console.error('Failed to load topics', err);
+        }
+      }
+      loadTopics();
+    </script>
+  </body>
+</html> 

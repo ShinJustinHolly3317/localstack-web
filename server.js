@@ -26,6 +26,11 @@ const sqs = new AWS.SQS({
   endpoint: `http://${LOCALSTACK_HOST}:${LOCALSTACK_PORT}`,
 });
 
+// SNS client
+const sns = new AWS.SNS({
+  endpoint: `http://${LOCALSTACK_HOST}:${LOCALSTACK_PORT}`,
+});
+
 // List all queue URLs
 app.get('/api/queues', async (req, res) => {
   try {
@@ -68,6 +73,18 @@ app.get('/api/queue', async (req, res) => {
     console.log(`[SQS Explorer] Attributes for ${url}:`, attributes);
 
     res.json({ attributes });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// List SNS topics
+app.get('/api/sns', async (_req, res) => {
+  try {
+    const data = await sns.listTopics().promise();
+    const topics = (data.Topics || []).map((t) => t.TopicArn);
+    res.json({ topics });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
