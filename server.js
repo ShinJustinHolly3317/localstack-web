@@ -148,6 +148,40 @@ app.post('/api/queue/attributes', async (req, res) => {
   }
 });
 
+// Get attributes for a specific SNS topic
+app.get('/api/topic', async (req, res) => {
+  const { arn } = req.query;
+  if (!arn) {
+    return res.status(400).json({ error: 'Missing arn parameter' });
+  }
+
+  try {
+    const data = await sns.getTopicAttributes({ TopicArn: arn }).promise();
+    res.json({ attributes: data.Attributes });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// List SQS subscriptions for a topic
+app.get('/api/topic-sqs-subs', async (req, res) => {
+  const { arn } = req.query;
+  if (!arn) return res.status(400).json({ error: 'Missing arn parameter' });
+  try {
+    const data = await sns
+      .listSubscriptionsByTopic({ TopicArn: arn })
+      .promise();
+    const sqsSubs = (data.Subscriptions || []).filter(
+      (sub) => sub.Protocol === 'sqs'
+    );
+    res.json({ sqs: sqsSubs });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('*', (req, res) =>
