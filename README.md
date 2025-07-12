@@ -64,7 +64,7 @@ Add this snippet to your `docker-compose.yml` if you prefer to run in the same n
 
 ## Release
 
-**v2.0.0**
+**v1.2.0**
 - Adds SNS dashboard: list topics, view attributes, see SQS subscriptions
 - Home page to select SQS or SNS
 - SQS dashboard unchanged from v1, but now lives at `/sqs.html`
