@@ -1,21 +1,28 @@
-# LocalStack SQS Web UI
+# LocalStack Web UI
 
-A lightweight web interface to browse and edit Amazon SQS queue attributes when using [LocalStack](https://github.com/localstack/localstack).
+A lightweight web interface to browse and edit Amazon SQS and SNS resources when using [LocalStack](https://github.com/localstack/localstack).
 
 ## Features
 
-- List all queues running in your LocalStack instance
-- View queue attributes in a friendly table (akin to AWS console)
-- Inline editing of writable attributes with validation
-- Search bar & auto-refresh
-- Loader overlay and success toast for smooth UX
+- **Home page**: Choose between SQS and SNS dashboards
+- **SQS Dashboard**
+  - List all queues
+  - View queue attributes in a friendly table (like AWS console)
+  - Inline editing of writable attributes
+  - Search bar, auto-refresh, and sidebar message counts
+  - Loader overlay and success toast for smooth UX
+- **SNS Dashboard**
+  - List all topics
+  - View topic attributes in a table
+  - See all SQS queues subscribed to each topic
+  - Search bar and resizable sidebar
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 16+
-- A running LocalStack container exposing SQS (default port **4566**)
+- A running LocalStack container exposing SQS and SNS (default port **4566**)
 
 ### Installation
 
@@ -51,6 +58,17 @@ Add this snippet to your `docker-compose.yml` if you prefer to run in the same n
 
 ## Development
 
-The backend lives in `server.js` (Express + AWS SDK v2). Static assets are served from `public/`.
+- The backend lives in `server.js` (Express + AWS SDK v2). Static assets are served from `public/`.
+- SQS and SNS dashboards are in `public/sqs.html` and `public/sns.html`.
+- Home page is `public/index.html`.
+
+## Release
+
+**v2.0.0**
+- Adds SNS dashboard: list topics, view attributes, see SQS subscriptions
+- Home page to select SQS or SNS
+- SQS dashboard unchanged from v1, but now lives at `/sqs.html`
+
+---
 
 Feel free to open issues or PRs for improvements! ✨ 
