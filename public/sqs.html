@@ -220,6 +220,7 @@
         <button id="editBtn" class="action-btn primary" style="display: none;">Edit</button>
         <button id="saveBtn" class="action-btn primary" style="display: none;">Save</button>
         <button id="cancelBtn" class="action-btn secondary" style="display: none;">Cancel</button>
+        <button id="sendMsgBtn" class="action-btn primary" style="display: none;">Send Message</button>
       </h2>
       <div id="messageStats" style="display:none;"></div>
       <div id="attributesPlaceholder">Select a queue to view its attributes</div>
@@ -234,6 +235,26 @@
       </table>
     </div>
 
+    <!-- Send Message Modal -->
+    <div id="sendMsgModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.2); z-index:2000; align-items:center; justify-content:center;">
+      <div style="background:#fff; padding:24px 28px; border-radius:10px; min-width:320px; max-width:90vw; box-shadow:0 2px 16px rgba(0,0,0,0.15); display:flex; flex-direction:column; gap:16px;">
+        <h3 style="margin:0 0 8px 0;">Send Message</h3>
+        <textarea id="sendMsgInput" rows="6" style="width:100%; resize:vertical; font-size:15px; padding:8px;"></textarea>
+        <div id="msgGroupIdRow" style="display:none; flex-direction:column; gap:4px;">
+          <label for="sendMsgGroupId" style="font-size:14px;">Message Group ID <span style="color:#e11d48;">*</span></label>
+          <input id="sendMsgGroupId" type="text" style="width:100%; font-size:15px; padding:6px; border-radius:6px; border:1px solid #cbd5e1;" />
+        </div>
+        <div id="msgDedupIdRow" style="display:none; flex-direction:column; gap:4px;">
+          <label for="sendMsgDedupId" style="font-size:14px;">Message Deduplication ID <span style="color:#e11d48;">*</span></label>
+          <input id="sendMsgDedupId" type="text" style="width:100%; font-size:15px; padding:6px; border-radius:6px; border:1px solid #cbd5e1;" placeholder="Leave blank to auto-generate" />
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button id="sendMsgCancel" class="action-btn secondary">Cancel</button>
+          <button id="sendMsgSend" class="action-btn primary">Send</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Loader & Toast -->
     <div id="loader"><div class="spinner"></div></div>
     <div id="toast">Updated successfully</div>
@@ -243,6 +264,7 @@
       let selectedQueueUrl = null;
       let editing = false;
       let queueCounts = {};
+      let selectedQueueDeduplication = false; // true if ContentBasedDeduplication is enabled
 
       // Key for persisting selected queue
       const SELECTED_KEY = 'sqs_selected_queue';
@@ -399,6 +421,7 @@
         titleEl.style.display = 'block';
 
         selectedQueueUrl = url;
+        selectedQueueDeduplication = data.attributes?.ContentBasedDeduplication === 'true';
 
         // Persist selection
         localStorage.setItem(SELECTED_KEY, url);
@@ -413,7 +436,9 @@
         document.getElementById('editBtn').style.display = 'inline-block';
         document.getElementById('saveBtn').style.display = 'none';
         document.getElementById('cancelBtn').style.display = 'none';
+        document.getElementById('sendMsgBtn').style.display = 'inline-block';
 
+        // Restore details rendering
         const placeholder = document.getElementById('attributesPlaceholder');
         const statsDiv = document.getElementById('messageStats');
         const table = document.getElementById('attributesTable');
@@ -544,6 +569,64 @@
         document.getElementById('editBtn').addEventListener('click', enterEditMode);
         document.getElementById('saveBtn').addEventListener('click', saveEdit);
         document.getElementById('cancelBtn').addEventListener('click', cancelEdit);
+        document.getElementById('sendMsgBtn').addEventListener('click', () => {
+          document.getElementById('sendMsgInput').value = '';
+          document.getElementById('sendMsgGroupId').value = '';
+          document.getElementById('sendMsgDedupId').value = '';
+          // Show MessageGroupId input if FIFO
+          if (selectedQueueUrl && selectedQueueUrl.endsWith('.fifo')) {
+            document.getElementById('msgGroupIdRow').style.display = 'flex';
+            // Show deduplication ID if ContentBasedDeduplication is not enabled
+            if (!selectedQueueDeduplication) {
+              document.getElementById('msgDedupIdRow').style.display = 'flex';
+            } else {
+              document.getElementById('msgDedupIdRow').style.display = 'none';
+            }
+          } else {
+            document.getElementById('msgGroupIdRow').style.display = 'none';
+            document.getElementById('msgDedupIdRow').style.display = 'none';
+          }
+          document.getElementById('sendMsgModal').style.display = 'flex';
+        });
+        document.getElementById('sendMsgCancel').addEventListener('click', () => {
+          document.getElementById('sendMsgModal').style.display = 'none';
+        });
+        document.getElementById('sendMsgSend').addEventListener('click', async () => {
+          const msg = document.getElementById('sendMsgInput').value;
+          const groupId = document.getElementById('sendMsgGroupId').value;
+          let dedupId = document.getElementById('sendMsgDedupId').value;
+          const isFifo = selectedQueueUrl && selectedQueueUrl.endsWith('.fifo');
+          const needsDedup = isFifo && !selectedQueueDeduplication;
+          if (!msg.trim()) {
+            alert('Message cannot be empty!');
+            return;
+          }
+          if (isFifo && !groupId.trim()) {
+            alert('Message Group ID is required for FIFO queues!');
+            return;
+          }
+          if (needsDedup && !dedupId.trim()) {
+            // Auto-generate a deduplication ID if not provided
+            dedupId = 'dedup-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+          }
+          document.getElementById('loader').style.display = 'flex';
+          try {
+            const res = await fetch('/api/queue/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: selectedQueueUrl, message: msg, messageGroupId: isFifo ? groupId : undefined, messageDeduplicationId: needsDedup ? dedupId : undefined })
+            });
+            if (!res.ok) throw new Error('Failed to send message');
+            document.getElementById('sendMsgModal').style.display = 'none';
+            showToast('Message sent!');
+            // Optionally refresh queue stats
+            loadAttributes(selectedQueueUrl);
+          } catch (e) {
+            alert('Failed to send message: ' + e.message);
+          } finally {
+            document.getElementById('loader').style.display = 'none';
+          }
+        });
       });
 
       loadQueues();
