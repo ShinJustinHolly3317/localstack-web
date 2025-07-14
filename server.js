@@ -261,6 +261,22 @@ app.post('/api/queue/messages', async (req, res) => {
   }
 });
 
+// Purge all messages in a queue
+app.post('/api/queue/purge', async (req, res) => {
+  const { url } = req.body || {};
+  if (!url) {
+    return res.status(400).json({ error: 'Missing url in body' });
+  }
+  try {
+    await sqs.purgeQueue({ QueueUrl: url }).promise();
+    console.log(`[SQS Explorer] Purged queue: ${url}`);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('*', (req, res) =>
