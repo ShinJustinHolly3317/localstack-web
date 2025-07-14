@@ -223,6 +223,7 @@
           <button id="cancelBtn" class="action-btn secondary" style="display: none;">Cancel</button>
           <button id="sendMsgBtn" class="action-btn primary" style="display: none;">Send Message</button>
           <button id="peekMsgBtn" class="action-btn secondary" style="display: none;">View Messages</button>
+          <button id="purgeQueueBtn" class="action-btn danger" style="display: none;">Purge Queue</button>
         </div>
       </div>
       <div id="messageStats" style="display:none;"></div>
@@ -457,6 +458,7 @@
         document.getElementById('cancelBtn').style.display = 'none';
         document.getElementById('sendMsgBtn').style.display = 'inline-block';
         document.getElementById('peekMsgBtn').style.display = 'inline-block';
+        document.getElementById('purgeQueueBtn').style.display = 'inline-block';
 
         // Restore details rendering
         const placeholder = document.getElementById('attributesPlaceholder');
@@ -663,6 +665,25 @@
         document.getElementById('peekMsgRefresh').addEventListener('click', () => {
           fetchPeekMessages();
         });
+        document.getElementById('purgeQueueBtn').addEventListener('click', async () => {
+          if (!selectedQueueUrl) return;
+          if (!confirm('Are you sure you want to purge all messages in this queue? This cannot be undone.')) return;
+          document.getElementById('loader').style.display = 'flex';
+          try {
+            const res = await fetch('/api/queue/purge', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: selectedQueueUrl })
+            });
+            if (!res.ok) throw new Error('Failed to purge queue');
+            showToast('Queue purged!');
+            loadAttributes(selectedQueueUrl);
+          } catch (e) {
+            alert('Failed to purge queue: ' + e.message);
+          } finally {
+            document.getElementById('loader').style.display = 'none';
+          }
+        });
       });
 
       loadQueues();
@@ -704,5 +725,9 @@
         }
       }
     </script>
+    <style>
+      /* Add a little red style for the danger button */
+      .action-btn.danger { background: #e11d48; color: #fff; } .action-btn.danger:hover { background: #be123c; }
+    </style>
   </body>
 </html> 
