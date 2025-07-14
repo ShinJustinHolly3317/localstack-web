@@ -2,6 +2,11 @@
 
 A lightweight web interface to browse and edit Amazon SQS and SNS resources when using [LocalStack](https://github.com/localstack/localstack).
 
+# Screenshots
+
+![Home Page](public/screenshots/home.png)
+*Home page: Choose between SQS and SNS dashboards*
+
 ## Features
 
 - **Home page**: Choose between SQS and SNS dashboards
@@ -9,8 +14,15 @@ A lightweight web interface to browse and edit Amazon SQS and SNS resources when
   - List all queues
   - View queue attributes in a friendly table (like AWS console)
   - Inline editing of writable attributes
+  - Send a message to any queue (with support for FIFO MessageGroupId and DeduplicationId)
+  - Peek at up to 5 current messages (non-destructive, with quick visibility reset)
+  - Purge all messages in a queue (danger action)
   - Search bar, auto-refresh, and sidebar message counts
   - Loader overlay and success toast for smooth UX
+
+![SQS Dashboard](public/screenshots/sqs-page.png)
+*SQS dashboard: View, edit, send, peek, and purge messages in your queues*
+
 - **SNS Dashboard**
   - List all topics
   - View topic attributes in a table
@@ -63,6 +75,10 @@ Add this snippet to your `docker-compose.yml` if you prefer to run in the same n
 - Home page is `public/index.html`.
 
 ## Release
+
+**v1.3.0**
+- SQS: Add send message (with FIFO support), peek messages, and purge queue actions
+- UI: Action buttons and stats now aligned for a cleaner look
 
 **v1.2.0**
 - Adds SNS dashboard: list topics, view attributes, see SQS subscriptions
