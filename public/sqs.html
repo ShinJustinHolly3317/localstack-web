@@ -221,6 +221,7 @@
         <button id="saveBtn" class="action-btn primary" style="display: none;">Save</button>
         <button id="cancelBtn" class="action-btn secondary" style="display: none;">Cancel</button>
         <button id="sendMsgBtn" class="action-btn primary" style="display: none;">Send Message</button>
+        <button id="peekMsgBtn" class="action-btn secondary" style="display: none;">View Messages</button>
       </h2>
       <div id="messageStats" style="display:none;"></div>
       <div id="attributesPlaceholder">Select a queue to view its attributes</div>
@@ -251,6 +252,20 @@
         <div style="display:flex; gap:10px; justify-content:flex-end;">
           <button id="sendMsgCancel" class="action-btn secondary">Cancel</button>
           <button id="sendMsgSend" class="action-btn primary">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Peek Messages Modal -->
+    <div id="peekMsgModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.2); z-index:2000; align-items:center; justify-content:center;">
+      <div style="background:#fff; padding:24px 28px; border-radius:10px; min-width:340px; max-width:95vw; max-height:90vh; box-shadow:0 2px 16px rgba(0,0,0,0.15); display:flex; flex-direction:column; gap:16px; overflow:auto;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <h3 style="margin:0;">Peek Messages</h3>
+          <button id="peekMsgRefresh" class="action-btn secondary" style="padding:4px 10px;">Refresh</button>
+        </div>
+        <div id="peekMsgList" style="font-size:15px; max-height:50vh; overflow:auto;"></div>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button id="peekMsgClose" class="action-btn secondary">Close</button>
         </div>
       </div>
     </div>
@@ -437,6 +452,7 @@
         document.getElementById('saveBtn').style.display = 'none';
         document.getElementById('cancelBtn').style.display = 'none';
         document.getElementById('sendMsgBtn').style.display = 'inline-block';
+        document.getElementById('peekMsgBtn').style.display = 'inline-block';
 
         // Restore details rendering
         const placeholder = document.getElementById('attributesPlaceholder');
@@ -627,11 +643,55 @@
             document.getElementById('loader').style.display = 'none';
           }
         });
+        document.getElementById('peekMsgBtn').addEventListener('click', () => {
+          openPeekMsgModal();
+        });
+        document.getElementById('peekMsgClose').addEventListener('click', () => {
+          document.getElementById('peekMsgModal').style.display = 'none';
+        });
+        document.getElementById('peekMsgRefresh').addEventListener('click', () => {
+          fetchPeekMessages();
+        });
       });
 
       loadQueues();
       // Refresh queue list every 30 seconds in case new queues appear
       setInterval(loadQueues, 30000);
+
+      // Peek messages logic
+      function openPeekMsgModal() {
+        document.getElementById('peekMsgModal').style.display = 'flex';
+        fetchPeekMessages();
+      }
+      async function fetchPeekMessages() {
+        const listDiv = document.getElementById('peekMsgList');
+        listDiv.innerHTML = '<div style="color:#888;">Loading...</div>';
+        try {
+          const res = await fetch('/api/queue/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: selectedQueueUrl })
+          });
+          if (!res.ok) throw new Error('Failed to fetch messages');
+          const data = await res.json();
+          if (!data.messages || data.messages.length === 0) {
+            listDiv.innerHTML = '<div style="color:#888;">No messages found.</div>';
+            return;
+          }
+          listDiv.innerHTML = data.messages.map((msg, i) => `
+            <div style="margin-bottom:18px; padding:12px; border-radius:8px; background:#f3f4f6;">
+              <div style="font-size:13px; color:#666; margin-bottom:4px;">#${i+1} | <b>MessageId:</b> ${msg.messageId}</div>
+              <div style="white-space:pre-wrap; word-break:break-all; margin-bottom:6px;"><b>Body:</b><br>${msg.body}</div>
+              <details style="font-size:13px; color:#444;">
+                <summary>Show metadata</summary>
+                <pre style="background:#eee; padding:8px; border-radius:6px;">${JSON.stringify(msg, null, 2)}</pre>
+              </details>
+            </div>
+          `).join('');
+        } catch (e) {
+          listDiv.innerHTML = `<div style='color:#e11d48;'>Error: ${e.message}</div>`;
+        }
+      }
     </script>
   </body>
 </html> 
