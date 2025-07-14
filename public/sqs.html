@@ -214,15 +214,17 @@
     <div id="resizer"></div>
     <div id="content">
       <h2 id="queueTitle" style="margin:0 0 10px 0; display:none;"></h2>
-
-      <h2 style="display: flex; align-items: center; gap: 10px;">
-        <span>Attributes</span>
-        <button id="editBtn" class="action-btn primary" style="display: none;">Edit</button>
-        <button id="saveBtn" class="action-btn primary" style="display: none;">Save</button>
-        <button id="cancelBtn" class="action-btn secondary" style="display: none;">Cancel</button>
-        <button id="sendMsgBtn" class="action-btn primary" style="display: none;">Send Message</button>
-        <button id="peekMsgBtn" class="action-btn secondary" style="display: none;">View Messages</button>
-      </h2>
+      <hr id="queueTitleDivider" style="display:none; border:none; border-top:2px solid #e5e7eb; margin:0 0 18px 0; width:100%;" />
+      <div id="queueHeaderBar" style="display:none; align-items:center; justify-content:space-between; margin-bottom:18px; gap:12px;">
+        <div id="messageStatsInline" style="display:flex; gap:10px;"></div>
+        <div style="display:flex; gap:8px;">
+          <button id="editBtn" class="action-btn primary" style="display: none;">Edit</button>
+          <button id="saveBtn" class="action-btn primary" style="display: none;">Save</button>
+          <button id="cancelBtn" class="action-btn secondary" style="display: none;">Cancel</button>
+          <button id="sendMsgBtn" class="action-btn primary" style="display: none;">Send Message</button>
+          <button id="peekMsgBtn" class="action-btn secondary" style="display: none;">View Messages</button>
+        </div>
+      </div>
       <div id="messageStats" style="display:none;"></div>
       <div id="attributesPlaceholder">Select a queue to view its attributes</div>
       <table id="attributesTable" style="display: none;">
@@ -434,6 +436,8 @@
         const titleEl = document.getElementById('queueTitle');
         titleEl.textContent = url.split('/').pop();
         titleEl.style.display = 'block';
+        document.getElementById('queueTitleDivider').style.display = 'block';
+        document.getElementById('queueHeaderBar').style.display = 'flex';
 
         selectedQueueUrl = url;
         selectedQueueDeduplication = data.attributes?.ContentBasedDeduplication === 'true';
@@ -466,13 +470,18 @@
         // Message stats
         const avail = data.attributes?.ApproximateNumberOfMessages;
         const inflight = data.attributes?.ApproximateNumberOfMessagesNotVisible;
+        const statsInline = document.getElementById('messageStatsInline');
         if (avail !== undefined || inflight !== undefined) {
           statsDiv.innerHTML = `
             <span class="stat-card">Available: ${avail ?? '-'}</span>
             <span class="stat-card">In flight: ${inflight ?? '-'}</span>`;
-          statsDiv.style.display = 'block';
+          statsDiv.style.display = 'none'; // hide old location
+          statsInline.innerHTML = `
+            <span class="stat-card">Available: ${avail ?? '-'}</span>
+            <span class="stat-card">In flight: ${inflight ?? '-'}</span>`;
         } else {
           statsDiv.style.display = 'none';
+          statsInline.innerHTML = '';
         }
 
         // Populate new rows
@@ -531,6 +540,8 @@
 
       // Hide title when no queue selected initially
       document.getElementById('queueTitle').style.display = 'none';
+      document.getElementById('queueTitleDivider').style.display = 'none';
+      document.getElementById('queueHeaderBar').style.display = 'none';
 
       // Save edited attributes
       async function saveEdit() {
