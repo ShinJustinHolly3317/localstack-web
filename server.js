@@ -148,6 +148,40 @@ app.post('/api/queue/attributes', async (req, res) => {
   }
 });
 
+// Send a message to a specific queue
+app.post('/api/queue/send', async (req, res) => {
+  const { url, message, messageGroupId, messageDeduplicationId } =
+    req.body || {};
+  if (!url || typeof message !== 'string') {
+    return res.status(400).json({ error: 'Missing url or message in body' });
+  }
+  try {
+    const params = {
+      QueueUrl: url,
+      MessageBody: message,
+    };
+    // If FIFO, require and set MessageGroupId
+    if (url.endsWith('.fifo')) {
+      if (!messageGroupId) {
+        return res
+          .status(400)
+          .json({ error: 'MessageGroupId is required for FIFO queues' });
+      }
+      params.MessageGroupId = messageGroupId;
+      // If ContentBasedDeduplication is not enabled, require MessageDeduplicationId
+      if (messageDeduplicationId) {
+        params.MessageDeduplicationId = messageDeduplicationId;
+      }
+    }
+    const result = await sqs.sendMessage(params).promise();
+    console.log(`[SQS Explorer] Sent message to ${url}:`, message);
+    res.json({ ok: true, messageId: result.MessageId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get attributes for a specific SNS topic
 app.get('/api/topic', async (req, res) => {
   const { arn } = req.query;
