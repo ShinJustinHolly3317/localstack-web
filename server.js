@@ -216,6 +216,51 @@ app.get('/api/topic-sqs-subs', async (req, res) => {
   }
 });
 
+// Peek messages in a queue (receive and reset visibility)
+app.post('/api/queue/messages', async (req, res) => {
+  const { url } = req.body || {};
+  if (!url) {
+    return res.status(400).json({ error: 'Missing url in body' });
+  }
+  try {
+    // Receive up to 5 messages, do not remove them
+    const receiveParams = {
+      QueueUrl: url,
+      MaxNumberOfMessages: 5,
+      VisibilityTimeout: 5, // seconds (short, but will reset to 1 below)
+      WaitTimeSeconds: 0,
+      AttributeNames: ['All'],
+      MessageAttributeNames: ['All'],
+    };
+    const data = await sqs.receiveMessage(receiveParams).promise();
+    const messages = data.Messages || [];
+    // Immediately reset visibility to 1 second for each message
+    await Promise.all(
+      messages.map((msg) =>
+        sqs
+          .changeMessageVisibility({
+            QueueUrl: url,
+            ReceiptHandle: msg.ReceiptHandle,
+            VisibilityTimeout: 1,
+          })
+          .promise()
+      )
+    );
+    // Return message bodies and metadata
+    res.json({
+      messages: messages.map((msg) => ({
+        messageId: msg.MessageId,
+        body: msg.Body,
+        attributes: msg.Attributes,
+        messageAttributes: msg.MessageAttributes,
+      })),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('*', (req, res) =>
