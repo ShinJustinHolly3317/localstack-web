@@ -11,3 +11,6 @@ coverage/
 
 # build output
 public/dist/ 
+
+# dist
+dist/
