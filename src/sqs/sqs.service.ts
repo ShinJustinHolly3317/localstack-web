@@ -145,7 +145,7 @@ export class SqsService {
       };
 
       const data = await sqs.receiveMessage(receiveParams).promise();
-      console.log('data', data);
+      this.logger.log('data', data);
       const messages = data.Messages || [];
 
       // Immediately reset visibility to 1 second for each message
