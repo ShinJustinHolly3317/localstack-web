@@ -4,14 +4,25 @@ A lightweight web interface to browse and edit Amazon SQS and SNS resources when
 
 # Screenshots
 
-![Home Page](public/screenshots/home.png)
-*Home page: Choose between SQS and SNS dashboards*
+![Dashboard](public/screenshots/home.png)
+*Modern dashboard with real-time metrics and navigation*
 
 ## Features
 
-- **Home page**: Choose between SQS and SNS dashboards
+- **Modern Dashboard**
+  - Real-time overview of SQS and SNS services
+  - Live statistics: Total Queues, Total Topics, Total Messages, Busiest Queue
+  - Top 5 queues with most messages (color-coded by message count)
+  - Quick action cards for easy navigation
+  - Auto-refresh every 30 seconds
+
+- **Unified Navigation**
+  - Consistent top navigation bar across all pages
+  - Home icon for quick dashboard access
+  - Seamless navigation between Dashboard, SQS, and SNS
+
 - **SQS Dashboard**
-  - List all queues
+  - List all queues with real-time message counts
   - View queue attributes in a friendly table (like AWS console)
   - Inline editing of writable attributes
   - Send a message to any queue (with support for FIFO MessageGroupId and DeduplicationId)
@@ -71,10 +82,19 @@ Add this snippet to your `docker-compose.yml` if you prefer to run in the same n
 ## Development
 
 - The backend lives in `server.js` (Express + AWS SDK v2). Static assets are served from `public/`.
+- Dashboard is in `public/index.html`
 - SQS and SNS dashboards are in `public/sqs.html` and `public/sns.html`.
-- Home page is `public/index.html`.
 
 ## Release
+
+**v1.5.0** 🎉
+- **Complete UI Redesign**: Modern dashboard with real-time metrics
+- **Unified Navigation**: Consistent top navigation bar across all pages
+- **Live Statistics**: Real-time overview of queues, topics, and message counts
+- **Queue Monitoring**: Top 5 queues with most messages and color-coded status
+- **Enhanced UX**: Improved loading states, error handling, and responsive design
+- **Smart Text Handling**: Dynamic font sizing for long queue names
+- **Quick Actions**: Easy access to SQS and SNS management
 
 **v1.3.0**
 - SQS: Add send message (with FIFO support), peek messages, and purge queue actions
