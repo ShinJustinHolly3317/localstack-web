@@ -5,7 +5,79 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SNS Topics</title>
     <style>
-      body { font-family: Arial, sans-serif; margin:0; padding:0; display:flex; height:100vh; }
+      /* Navigation Bar Styles */
+      .navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: #1e293b;
+        color: white;
+        display: flex;
+        align-items: center;
+        padding: 0 20px;
+        z-index: 1000;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      
+      .navbar-brand {
+        font-size: 18px;
+        font-weight: 600;
+        margin-right: 40px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      
+      .home-icon {
+        font-size: 20px;
+        color: #fbbf24;
+        text-decoration: none;
+        transition: transform 0.2s;
+      }
+      
+      .home-icon:hover {
+        transform: scale(1.1);
+      }
+      
+      .navbar-nav {
+        display: flex;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        gap: 20px;
+      }
+      
+      .navbar-nav a {
+        color: #cbd5e1;
+        text-decoration: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+      
+      .navbar-nav a:hover {
+        color: white;
+        background: rgba(255, 255, 255, 0.1);
+      }
+      
+      .navbar-nav a.active {
+        color: white;
+        background: #2563eb;
+      }
+      
+      /* Adjust body to account for navbar */
+      body { 
+        font-family: Arial, sans-serif; 
+        margin:0; 
+        padding:0; 
+        display:flex; 
+        height:100vh; 
+        padding-top: 60px; /* Add top padding for navbar */
+      }
+      
       #sidebar{position:relative;width:350px;min-width:180px;max-width:600px;background:#f8fafc;overflow:auto;border-right:1px solid #e2e8f0;box-shadow:2px 0 4px rgba(0,0,0,0.05);} 
       #resizer{width:5px;cursor:col-resize;background:transparent;}#resizer:hover{background:rgba(0,0,0,.1);} 
       #content{flex:1;padding:20px;overflow-y:auto;}
@@ -16,11 +88,21 @@
       #search{border:1px solid #cbd5e1;border-radius:6px;outline:none;width:90%;margin:10px;padding:6px;}#search:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.2)}
       table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,.05);}th,td{border:none;padding:12px 16px;}th{background:#f3f4f6;text-align:left;font-weight:600}tbody tr:not(:last-child) td{border-bottom:1px solid #e5e7eb}
       td.readonly{background:#f9f9f9;}
-      a.home{position:absolute;top:10px;left:10px;font-size:14px;text-decoration:none;color:#2563eb;}
     </style>
   </head>
   <body>
-    <a href="/" class="home">← Home</a>
+    <div class="navbar">
+      <div class="navbar-brand">
+        <a href="/" class="home-icon">🏠</a>
+        LocalStack Explorer
+      </div>
+      <nav>
+        <ul class="navbar-nav">
+          <li><a href="/sqs.html" class="navbar-nav-link">SQS</a></li>
+          <li><a href="/sns.html" class="navbar-nav-link active">SNS</a></li>
+        </ul>
+      </nav>
+    </div>
     <div id="sidebar">
       <h2 style="padding:10px;margin:0;">SNS Topics</h2>
       <input id="search" placeholder="Search..." />
