@@ -1,0 +1,9 @@
+.action-btn { padding:6px 14px; font-size:14px; border:none; border-radius:6px; cursor:pointer; transition:background .2s }
+.action-btn.primary { background:#1d4ed8; color:#fff }
+.action-btn.primary:hover { background:#2563eb }
+.action-btn.secondary { background:#e5e7eb; color:#111827 }
+.action-btn.secondary:hover { background:#d1d5db }
+.action-btn.danger { background:#e11d48; color:#fff }
+.action-btn.danger:hover { background:#be123c }
+.stat-card { display:inline-block; background:#f3f4f6; padding:8px 14px; border-radius:8px; margin:0 8px 16px 0; font-size:14px; font-weight:600 }
+

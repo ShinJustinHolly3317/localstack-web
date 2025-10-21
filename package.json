@@ -5,6 +5,10 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "nest build",
+    "build:client": "pnpm --prefix client build",
+    "dev:client": "pnpm --prefix client dev",
+    "preview:client": "pnpm --prefix client preview",
+    "postinstall": "pnpm --prefix client install || true",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",

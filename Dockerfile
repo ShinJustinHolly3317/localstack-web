@@ -12,7 +12,8 @@ RUN npm install -g pnpm && pnpm install --frozen-lockfile
 COPY . .
 
 # Build the application
-RUN pnpm run build
+# Build client and server
+RUN pnpm --prefix client install --frozen-lockfile && pnpm --prefix client build && pnpm run build
 
 # Expose port
 EXPOSE 3000
