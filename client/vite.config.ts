@@ -4,6 +4,7 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  envPrefix: ['VITE_', 'BACKEND_'],
   resolve: {
     alias: {
       '@api': path.resolve(__dirname, 'src/api'),
@@ -12,9 +13,12 @@ export default defineConfig({
     }
   },
   server: {
-    port: 5173,
+    port: Number(process.env.FRONTEND_PORT || 5173),
     proxy: {
-      '/api': 'http://localhost:3000'
+      '/api': {
+        target: `http://${process.env.BACKEND_HOST || 'localhost'}:${process.env.BACKEND_PORT || '3000'}`,
+        changeOrigin: true
+      }
     }
   },
   build: {

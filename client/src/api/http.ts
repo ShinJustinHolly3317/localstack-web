@@ -1,8 +1,33 @@
-const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL?.replace(/\/$/, '') || ''
+const ENV = (import.meta as any).env || {}
+const HOST = (ENV.BACKEND_HOST as string) || ''
+const PORT = (ENV.BACKEND_PORT as string) || ''
+const ABS = (ENV.BACKEND_ABSOLUTE as string) || ''
+
+function isBrowserResolvableHost(host: string): boolean {
+  if (!host) return false
+  if (host === 'localhost') return true
+  if (host.includes('.')) return true // domain or IP
+  return false // likely docker internal hostname like "backend"
+}
 
 function withBase(url: string): string {
-  if (!API_BASE) return url
-  return `${API_BASE}${url.startsWith('/') ? url : `/${url}`}`
+  // If not configured, use same-origin to leverage Vite proxy in dev
+  if (!HOST || !PORT) return url
+
+  // If an absolute URL is provided in HOST, use as-is
+  if (HOST.startsWith('http://') || HOST.startsWith('https://')) {
+    const base = HOST.replace(/\/$/, '')
+    return `${base}${url.startsWith('/') ? url : `/${url}`}`
+  }
+
+  // Only build absolute URL when browser can resolve HOST, or explicitly forced
+  if (ABS === 'true' || isBrowserResolvableHost(HOST)) {
+    const protocol = window.location?.protocol || 'http:'
+    return `${protocol}//${HOST}:${PORT}${url.startsWith('/') ? url : `/${url}`}`
+  }
+
+  // Otherwise, fall back to relative to let the dev server proxy to backend
+  return url
 }
 
 export async function getJson<T>(url: string): Promise<T> {

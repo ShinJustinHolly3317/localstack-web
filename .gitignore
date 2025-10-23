@@ -14,3 +14,5 @@ public/dist/
 
 # dist
 dist/
+
+.pnpm-store/

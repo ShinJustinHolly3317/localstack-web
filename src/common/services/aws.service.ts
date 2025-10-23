@@ -7,14 +7,16 @@ export class AwsService {
   private sqs: AWS.SQS;
   private sns: AWS.SNS;
   private region: string;
+  private localstackHost: string;
+  private localstackPort: string;
 
   constructor(private configService: ConfigService) {
     this.region = this.configService.get('AWS_REGION') || 
                   this.configService.get('AWS_DEFAULT_REGION') || 
                   'ap-northeast-1';
 
-    const localstackHost = this.configService.get('LOCALSTACK_HOST') || 'localhost';
-    const localstackPort = this.configService.get('LOCALSTACK_PORT') || '4566';
+    this.localstackHost = this.configService.get('LOCALSTACK_HOST') || 'localhost';
+    this.localstackPort = this.configService.get('LOCALSTACK_PORT') || '4566';
 
     // Configure AWS SDK
     AWS.config.update({
@@ -24,14 +26,10 @@ export class AwsService {
     });
 
     // Initialize SQS client
-    this.sqs = new AWS.SQS({
-      endpoint: `http://${localstackHost}:${localstackPort}`,
-    });
+    this.sqs = new AWS.SQS({ endpoint: `http://${this.localstackHost}:${this.localstackPort}` });
 
     // Initialize SNS client
-    this.sns = new AWS.SNS({
-      endpoint: `http://${localstackHost}:${localstackPort}`,
-    });
+    this.sns = new AWS.SNS({ endpoint: `http://${this.localstackHost}:${this.localstackPort}` });
   }
 
   getSqs(): AWS.SQS {
@@ -44,5 +42,9 @@ export class AwsService {
 
   getRegion(): string {
     return this.region;
+  }
+
+  getLocalstackEndpointBase(): string {
+    return `http://${this.localstackHost}:${this.localstackPort}`;
   }
 } 

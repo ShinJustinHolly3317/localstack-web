@@ -44,67 +44,106 @@ A lightweight web interface to browse and edit Amazon SQS and SNS resources when
 
 ### Prerequisites
 
-- Node.js 16+
+- Node.js 20+
+- pnpm
+- Docker (optional, for compose)
 - A running LocalStack container exposing SQS and SNS (default port **4566**)
 
-### Installation
+### Install
 
 ```bash
-cd localstack-web
 pnpm install
+# (optional) install client deps explicitly
+pnpm --prefix client install
 ```
 
-### Running
+### Development (two terminals)
 
 ```bash
-# on host machine
-AWS_REGION=ap-northeast-1 pnpm start
+# 1) Backend (NestJS on :3000)
+pnpm start:dev
+
+# 2) Frontend (Vite on :5173 with API proxy)
+pnpm --prefix client dev
 ```
 
-Open `http://localhost:3001` (or the port you configured) in your browser.
+Configure the React API base URL via env:
 
-### Docker Compose Service
+- Create `client/.env.development`:
 
-Add this snippet to your `docker-compose.yml` if you prefer to run in the same network as LocalStack:
-
-```yaml
-  localstack-web:
-    build: ./localstack-web
-    environment:
-      - LOCALSTACK_HOST=localstack      # match your LocalStack service name
-      - AWS_REGION=ap-northeast-1
-    ports:
-      - "3001:3001"
-    depends_on:
-      - localstack
+```ini
+VITE_API_BASE_URL=http://localhost:3000
 ```
 
-## Development
+Then open `http://localhost:5173`.
 
-- The backend lives in `server.js` (Express + AWS SDK v2). Static assets are served from `public/`.
-- Dashboard is in `public/index.html`
-- SQS and SNS dashboards are in `public/sqs.html` and `public/sns.html`.
+### Docker Compose (dev)
 
-## Release
+We bundle a compose file to run both services:
 
-**v1.5.0** 🎉
-- **Complete UI Redesign**: Modern dashboard with real-time metrics
-- **Unified Navigation**: Consistent top navigation bar across all pages
-- **Live Statistics**: Real-time overview of queues, topics, and message counts
-- **Queue Monitoring**: Top 5 queues with most messages and color-coded status
-- **Enhanced UX**: Improved loading states, error handling, and responsive design
-- **Smart Text Handling**: Dynamic font sizing for long queue names
-- **Quick Actions**: Easy access to SQS and SNS management
+```bash
+# create .env (same dir as docker-compose.yml)
+cat > .env <<EOF
+BACKEND_PORT=3000
+FRONTEND_PORT=5173
+VITE_API_BASE_URL=http://localhost:3000
+EOF
+
+docker compose up
+```
+
+Access:
+
+- Frontend: `http://localhost:${FRONTEND_PORT}` (default 5173)
+- Backend API: `http://localhost:${BACKEND_PORT}/api` (default 3000)
+
+### Production run
+
+```bash
+# build client and server, then run
+pnpm run build:client && pnpm run build && pnpm run start:prod
+```
+
+Notes:
+
+- Nest serves the built React app from `client/dist` with SPA fallback (non-`/api` routes).
+- Client fetches use `VITE_API_BASE_URL` if set; otherwise same-origin `/api`.
+
+### Routes
+
+- `/` Dashboard
+- `/sqs` SQS Explorer
+- `/sns` SNS Topics
+
+## Development Notes
+
+- Backend: NestJS in `src/*` exposes APIs under `/api`.
+- Frontend: React + TypeScript (Vite) lives in `client/*`.
+- Legacy static pages under `public/*.html` have been removed in favor of the SPA.
+
+## Release Notes
+**v2.0.1**
+- Add docker compose
+- Fix docker host and port when using docker compose
+
+**v2.0.0**
+- Migrated UI to React (TypeScript) SPA with Vite and React Router.
+- Nest now serves `client/dist` and includes SPA fallback for non-`/api` routes.
+- Added `VITE_API_BASE_URL` for client-side API domain configuration.
+- Added `docker-compose.yml` to run backend and frontend together.
+- Upgraded dev base images in compose to Node 20-alpine.
+- Breaking: removed legacy static pages `public/sqs.html` and `public/sns.html`.
+  - Old URLs `/sqs.html` → `/sqs`, `/sns.html` → `/sns`.
+
+**v1.5.0**
+- Complete UI redesign with dashboard metrics and quick actions.
 
 **v1.3.0**
-- SQS: Add send message (with FIFO support), peek messages, and purge queue actions
-- UI: Action buttons and stats now aligned for a cleaner look
+- SQS: send message (FIFO support), peek messages, purge queue actions.
 
 **v1.2.0**
-- Adds SNS dashboard: list topics, view attributes, see SQS subscriptions
-- Home page to select SQS or SNS
-- SQS dashboard unchanged from v1, but now lives at `/sqs.html`
+- Adds SNS dashboard: list topics, view attributes, see SQS subscriptions.
 
 ---
 
-Feel free to open issues or PRs for improvements! ✨ 
+Feel free to open issues or PRs for improvements! ✨

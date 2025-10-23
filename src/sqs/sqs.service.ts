@@ -8,6 +8,20 @@ export class SqsService {
 
   constructor(private readonly awsService: AwsService) {}
 
+  private normalizeQueueUrl(url: string): string {
+    if (!url) return url;
+    const base = this.awsService.getLocalstackEndpointBase();
+    if (url.includes('localhost.localstack.cloud')) {
+      try {
+        const u = new URL(url);
+        return `${base}${u.pathname}`;
+      } catch {
+        return url;
+      }
+    }
+    return url;
+  }
+
   async listQueues(): Promise<{ queues: string[] }> {
     try {
       const sqs = this.awsService.getSqs();
@@ -30,15 +44,16 @@ export class SqsService {
   async getQueueAttributes(url: string): Promise<{ attributes: AWS.SQS.QueueAttributeMap }> {
     try {
       const sqs = this.awsService.getSqs();
+      const queueUrl = this.normalizeQueueUrl(url);
       const data = await sqs
         .getQueueAttributes({
-          QueueUrl: url,
+          QueueUrl: queueUrl,
           AttributeNames: ['All'],
         })
         .promise();
 
       const attributes = data.Attributes || {};
-      this.logger.log(`[SQS Explorer] Attributes for ${url}:`, attributes);
+      this.logger.log(`[SQS Explorer] Attributes for ${queueUrl}:`, attributes);
 
       return { attributes };
     } catch (error) {
@@ -79,14 +94,15 @@ export class SqsService {
 
     try {
       const sqs = this.awsService.getSqs();
+      const queueUrl = this.normalizeQueueUrl(url);
       await sqs
         .setQueueAttributes({
-          QueueUrl: url,
+          QueueUrl: queueUrl,
           Attributes: filteredAttributes,
         })
         .promise();
 
-      this.logger.log(`[SQS Explorer] Updated attributes for ${url}:`, filteredAttributes);
+      this.logger.log(`[SQS Explorer] Updated attributes for ${queueUrl}:`, filteredAttributes);
       return { ok: true };
     } catch (error) {
       this.logger.error('Error updating queue attributes:', error);
@@ -102,13 +118,14 @@ export class SqsService {
   ): Promise<{ ok: boolean; messageId: string }> {
     try {
       const sqs = this.awsService.getSqs();
+      const queueUrl = this.normalizeQueueUrl(url);
       const params: AWS.SQS.SendMessageRequest = {
-        QueueUrl: url,
+        QueueUrl: queueUrl,
         MessageBody: message,
       };
 
       // If FIFO, require and set MessageGroupId
-      if (url.endsWith('.fifo')) {
+      if (queueUrl.endsWith('.fifo')) {
         if (!messageGroupId) {
           throw new Error('MessageGroupId is required for FIFO queues');
         }
@@ -121,7 +138,7 @@ export class SqsService {
       }
 
       const result = await sqs.sendMessage(params).promise();
-      this.logger.log(`[SQS Explorer] Sent message to ${url}:`, message);
+      this.logger.log(`[SQS Explorer] Sent message to ${queueUrl}:`, message);
       
       return { ok: true, messageId: result.MessageId };
     } catch (error) {
@@ -133,10 +150,11 @@ export class SqsService {
   async peekMessages(url: string): Promise<{ messages: any[] }> {
     try {
       const sqs = this.awsService.getSqs();
+      const queueUrl = this.normalizeQueueUrl(url);
       
       // Receive up to 5 messages, do not remove them
       const receiveParams: AWS.SQS.ReceiveMessageRequest = {
-        QueueUrl: url,
+        QueueUrl: queueUrl,
         MaxNumberOfMessages: 5,
         VisibilityTimeout: 5, // seconds (short, but will reset to 1 below)
         WaitTimeSeconds: 0,
@@ -153,7 +171,7 @@ export class SqsService {
         messages.map((msg) =>
           sqs
             .changeMessageVisibility({
-              QueueUrl: url,
+              QueueUrl: queueUrl,
               ReceiptHandle: msg.ReceiptHandle,
               VisibilityTimeout: 1,
             })
@@ -177,9 +195,10 @@ export class SqsService {
   async purgeQueue(url: string): Promise<{ ok: boolean }> {
     try {
       const sqs = this.awsService.getSqs();
-      await sqs.purgeQueue({ QueueUrl: url }).promise();
+      const queueUrl = this.normalizeQueueUrl(url);
+      await sqs.purgeQueue({ QueueUrl: queueUrl }).promise();
       
-      this.logger.log(`[SQS Explorer] Purged queue: ${url}`);
+      this.logger.log(`[SQS Explorer] Purged queue: ${queueUrl}`);
       return { ok: true };
     } catch (error) {
       this.logger.error('Error purging queue:', error);
